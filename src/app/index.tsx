@@ -187,11 +187,47 @@ export default function App() {
       return;
     }
 
-    setExams((current) =>
-      current.map((exam) =>
-        exam.id === selectedId ? { ...exam, minutes: Number(duration) } : exam,
-      ),
-    );
+    // Date tự đổi ngày/tháng không hợp lệ (ví dụ 31/02) sang tháng kế tiếp,
+    // nên so sánh lại các thành phần để chỉ chấp nhận ngày thực sự tồn tại.
+    const deadlineDate = new Date(year, month - 1, day, hour, minute);
+    if (
+      deadlineDate.getFullYear() !== year ||
+      deadlineDate.getMonth() !== month - 1 ||
+      deadlineDate.getDate() !== day
+    ) {
+      Alert.alert('Lỗi', 'Ngày không tồn tại trong tháng đã chọn.');
+      return;
+    }
+
+    // Không cho giao bài với hạn nộp đã qua, bao gồm mọi ngày thuộc năm 2025.
+    if (deadlineDate.getTime() <= Date.now()) {
+      Alert.alert('Lỗi', 'Hạn nộp phải là thời điểm trong tương lai.');
+      return;
+    }
+
+    // Tạo danh sách mới: chỉ đề đang chọn được đổi thời lượng,
+    // các đề còn lại được giữ nguyên như cũ.
+    setExams(function (currentExams) {
+      const updatedExams: Exam[] = [];
+
+      for (const exam of currentExams) {
+        if (exam.id === selectedId) {
+          const updatedExam: Exam = {
+            id: exam.id,
+            name: exam.name,
+            count: exam.count,
+            minutes: Number(duration),
+            saved: exam.saved,
+            questions: exam.questions,
+          };
+          updatedExams.push(updatedExam);
+        } else {
+          updatedExams.push(exam);
+        }
+      }
+
+      return updatedExams;
+    });
     setScreen('done');
   };
 
